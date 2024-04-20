@@ -1,62 +1,109 @@
-// Get references to the displayed image, thumbnail bar, button, and overlay
-const displayedImage = document.querySelector('.displayed-img');
-const thumbBar = document.querySelector('.thumb-bar');
-const btn = document.querySelector('button');
-const overlay = document.querySelector('.overlay');
+// Get a reference to the canvas element and its 2D context
+const canvas = document.querySelector("canvas");
+const ctx = canvas.getContext("2d");
 
-// Array of image filenames and object of alternative texts for each image
-const images = ['pic1.jpg', 'pic2.jpg', 'pic3.jpg', 'pic4.jpg', 'pic5.jpg'];
-const alts = {
-  'pic1.jpg' : 'human eye',
-  'pic2.jpg' : 'wavey object',
-  'pic3.jpg' : 'Purple and white flowers',
-  'pic4.jpg' : 'Aincient Pharaoh picture',
-  'pic5.jpg' : 'moth on a leaf'
+// Set the canvas dimensions to match the window's inner dimensions
+const width = (canvas.width = window.innerWidth);
+const height = (canvas.height = window.innerHeight);
+
+// Function to generate a random number between min and max (inclusive)
+function random(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Loop over each image
-for (const image of images) {
-  // Create a new image element and set its source, alternative text, and tabindex
-  const newImage = document.createElement('img');
-  newImage.setAttribute('src', `images/${image}`);
-  newImage.setAttribute('alt', alts[image]);
-  newImage.setAttribute('tabindex', '0'); 
-
-  // Append the new image to the thumbnail bar
-  thumbBar.appendChild(newImage);
-
-  // Add a click event listener to the new image
-  newImage.addEventListener('click', e => {
-    // When the image is clicked, update the displayed image's source and alternative text
-    displayedImage.src = e.target.src;
-    displayedImage.alt = e.target.alt;
-  });
-
-  // Add a keydown event listener to the new image
-  newImage.addEventListener('keydown', function (e) {
-    // When the Enter key is pressed, update the displayed image's source and alternative text
-    if (e.key === 'Enter') {  
-      displayedImage.src = e.target.src;
-      displayedImage.alt = e.target.alt;
-    }
-  });
+// Function to generate a random RGB color
+function randomRGB() {
+  return `rgb(${random(0, 255)},${random(0, 255)},${random(0, 255)})`;
 }
 
-// Add a click event listener to the button
-btn.addEventListener('click', () => {
-  // Get the current class of the button
-  const btnClass = btn.getAttribute('class');
-
-  // If the button's class is 'dark'
-  if (btnClass === 'dark') {
-    // Change the button's class to 'light', its text to 'Lighten', and the overlay's background color to semi-transparent black
-    btn.setAttribute('class','light');
-    btn.textContent = 'Lighten';
-    overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-  } else {
-    // Otherwise, change the button's class to 'dark', its text to 'Darken', and the overlay's background color to fully transparent
-    btn.setAttribute('class','dark');
-    btn.textContent = 'Darken';
-    overlay.style.backgroundColor = 'rgba(0,0,0,0)';
+// Define a Ball class
+class Ball {
+  constructor(x, y, velX, velY, color, size) {
+    this.x = x; // x-coordinate
+    this.y = y; // y-coordinate
+    this.velX = velX; // velocity in the x-direction
+    this.velY = velY; // velocity in the y-direction
+    this.color = color; // color of the ball
+    this.size = size; // radius of the ball
   }
-});
+
+  // Method to draw the ball
+  draw() {
+    ctx.beginPath();
+    ctx.fillStyle = this.color;
+    ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  // Method to update the ball's position and handle collisions with the canvas edges
+  update() {
+    if (this.x + this.size >= width) {
+      this.velX = -Math.abs(this.velX);
+    }
+
+    if (this.x - this.size <= 0) {
+      this.velX = Math.abs(this.velX);
+    }
+
+    if (this.y + this.size >= height) {
+      this.velY = -Math.abs(this.velY);
+    }
+
+    if (this.y - this.size <= 0) {
+      this.velY = Math.abs(this.velY);
+    }
+
+    this.x += this.velX;
+    this.y += this.velY;
+  }
+
+  // Method to detect collisions between balls
+  collisionDetect() {
+    for (const ball of balls) {
+      if (!(this === ball)) {
+        const dx = this.x - ball.x;
+        const dy = this.y - ball.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < this.size + ball.size) {
+          ball.color = this.color = randomRGB();
+        }
+      }
+    }
+  }
+}
+
+// Array to hold all the balls
+const balls = [];
+
+// Create 25 balls with random properties
+while (balls.length < 25) {
+  const size = random(10, 20);
+  const ball = new Ball(
+    random(0 + size, width - size),
+    random(0 + size, height - size),
+    random(-7, 7),
+    random(-7, 7),
+    randomRGB(),
+    size
+  );
+
+  balls.push(ball);
+}
+
+// Function to animate the balls
+function loop() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+  ctx.fillRect(0, 0, width, height);
+
+  for (const ball of balls) {
+    ball.draw();
+    ball.update();
+    ball.collisionDetect();
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// Start the animation loop
+loop();
